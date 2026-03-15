@@ -1,9 +1,10 @@
 """
-Hourly air quality collector for sensor.community → Supabase.
+Air quality collector for sensor.community → Supabase.
+Runs every 10 minutes via GitHub Actions.
 
 Reads from two sensors (SDS011 + BME280) and inserts one row into
-the Supabase `readings` table.  Duplicate timestamps are silently
-ignored thanks to the unique index on `timestamp`.
+the Supabase `readings` table using the collection time as the timestamp,
+so every run always produces a unique row regardless of sensor update frequency.
 
 Required environment variables (set as GitHub Actions secrets):
   SUPABASE_URL          – https://YOUR_PROJECT_ID.supabase.co
@@ -29,7 +30,7 @@ HEADERS = {
     "apikey":        SUPABASE_SERVICE_KEY,
     "Authorization": f"Bearer {SUPABASE_SERVICE_KEY}",
     "Content-Type":  "application/json",
-    "Prefer":        "resolution=ignore-duplicates,return=minimal",
+    "Prefer":        "return=minimal",
 }
 
 
@@ -53,12 +54,6 @@ def parse_values(entry: dict) -> dict[str, float | None]:
     return result
 
 
-def sensor_timestamp_to_utc(ts_raw: str) -> str:
-    """Convert sensor timestamp 'YYYY-MM-DD HH:MM:SS' (UTC) to ISO 8601."""
-    dt = datetime.strptime(ts_raw, "%Y-%m-%d %H:%M:%S").replace(tzinfo=timezone.utc)
-    return dt.isoformat()
-
-
 def collect() -> None:
     pm_entry  = fetch_sensor(PM_SENSOR_ID)
     env_entry = fetch_sensor(ENV_SENSOR_ID)
@@ -66,8 +61,9 @@ def collect() -> None:
     pm_vals  = parse_values(pm_entry)
     env_vals = parse_values(env_entry)
 
-    ts_raw    = pm_entry.get("timestamp") or datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
-    timestamp = sensor_timestamp_to_utc(ts_raw)
+    # Use current UTC time as the row timestamp — guarantees a new row every run
+    # even if the sensor API returns a cached/repeated measurement timestamp.
+    timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S+00:00")
 
     row = {
         "timestamp": timestamp,
