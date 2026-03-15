@@ -33,6 +33,8 @@ function makeWhoPlugin(value, label, color) {
 
 /* ───── SHARED CHART FACTORY ────────────────────────────────────────────── */
 function makeChart(canvasId, readings, dataKey, label, color, bgColor, yOpts = {}, whoPlugin = null) {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) { console.error(`[chart.js] canvas #${canvasId} not found`); return null; }
     const nPts   = readings.length < 48 ? 4 : 2;
     const labels = readings.map(r => formatTimestamp(r.timestamp));
     const data   = readings.map(r => r[dataKey]);
@@ -44,7 +46,7 @@ function makeChart(canvasId, readings, dataKey, label, color, bgColor, yOpts = {
     if (yOpts.beginAtZero)      yScale.beginAtZero      = true;
     if (yOpts.afterDataLimits)  yScale.afterDataLimits  = yOpts.afterDataLimits;
 
-    return new Chart(document.getElementById(canvasId).getContext('2d'), {
+    return new Chart(canvas.getContext('2d'), {
         type: 'line',
         data: {
             labels,
