@@ -2,7 +2,7 @@ name: Collect Air Quality Data
 
 on:
   schedule:
-    - cron: "*/10 * * * *"  # every 10 minutes
+    - cron: "0 * * * *"    # every hour on the hour (UTC)
   workflow_dispatch:       # allow manual trigger from the GitHub Actions tab
 
 env:
