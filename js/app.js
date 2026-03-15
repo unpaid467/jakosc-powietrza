@@ -75,43 +75,25 @@ function initHistoryControls() {
     picker.addEventListener('change', () => { if (picker.value) showHistoryDay(picker.value); });
 }
 
-/* ───── MAIN REFRESH (live sensor, runs every 5 min) ───── */
+/* ───── MAIN REFRESH (runs every 10 min, reads everything from Supabase) ───── */
 
 async function refresh() {
-    const overlayErr = document.getElementById('overlayErr');
+    const overlayErr    = document.getElementById('overlayErr');
     overlayErr.textContent = '';
+    const supabaseReady = !SUPABASE_URL.includes('YOUR_PROJECT_ID');
 
-    // 1. Fetch live data from both sensors in parallel
-    let liveEntry = null, pmRaw = null, envRaw = null;
+    // 1. Get latest reading for measurement cards
+    let latest = null;
     try {
-        const [pmResult, envResult] = await Promise.allSettled([
-            fetchSensor(PM_SENSOR_ID),
-            fetchSensor(ENV_SENSOR_ID),
-        ]);
-        if (pmResult.status === 'fulfilled')  pmRaw  = pmResult.value;
-        if (envResult.status === 'fulfilled') envRaw = envResult.value;
-        liveEntry = await fetchLiveBoth();
+        latest = supabaseReady
+            ? await fetchLatestFromSupabase()
+            : await fetchLiveBoth();   // fallback when Supabase not configured
     } catch (err) {
-        console.warn('Live API error:', err);
+        console.warn('Latest reading fetch failed:', err);
         overlayErr.textContent = `Błąd pobierania: ${err.message}`;
     }
 
-    // 2. Accumulate new readings into localStorage (today's rolling buffer)
-    let stored = loadLocal();
-    if (pmRaw) {
-        const newReadings = extractAllReadings(pmRaw, envRaw);
-        newReadings.forEach(r => {
-            if (!stored.some(s => s.timestamp === r.timestamp)) stored.push(r);
-        });
-        stored.sort((a, b) =>
-            new Date(a.timestamp.replace(' ', 'T')) - new Date(b.timestamp.replace(' ', 'T'))
-        );
-        saveLocal(stored);
-        historyCache.delete(todayStr());   // invalidate so next loadDayData picks up freshData
-    }
-
-    // 3. Update current-reading cards
-    const latest = liveEntry ?? (stored.length > 0 ? stored[stored.length - 1] : null);
+    // 2. Update measurement cards
     if (latest) {
         updateBanner(latest.pm25);
         updateCard('valPM25', 'progPM25', 'badgePM25', latest.pm25, PM25_LEVELS, 15);
@@ -120,31 +102,35 @@ async function refresh() {
         updateHumCard(latest.hum);
         updateNormsTable(latest.pm25, latest.pm10);
         updateLastUpdate(latest.timestamp);
-    } else {
-        overlayErr.textContent = 'Brak danych z czujników. Spróbuj odświeżyć stronę.';
+    } else if (!latest) {
+        overlayErr.textContent = 'Brak danych. Spróbuj odświeżyć stronę.';
     }
 
-    document.getElementById('dataSourceInfo').textContent =
-        `Czujniki: SDS011 #${PM_SENSOR_ID} + BME280 #${ENV_SENSOR_ID}`;
+    document.getElementById('dataSourceInfo').textContent = supabaseReady
+        ? 'Źródło danych: Supabase (zbierane co 10 min)'
+        : `Czujniki: SDS011 #${PM_SENSOR_ID} + BME280 #${ENV_SENSOR_ID}`;
 
-    // 4. Refresh chart only if user is still on today's view
+    // 3. Refresh chart if user is viewing today
     if (currentViewDate === todayStr()) {
-        updateNavUI(todayStr());
-        if (stored.length > 0) {
-            buildChart(stored);
-            updateChartSummary(stored);
-            document.getElementById('historySummary').style.display = 'grid';
-            document.getElementById('chartNote').textContent =
-                stored.length < 3
-                    ? `${stored.length} pomiar${stored.length === 1 ? '' : 'y'} z dzisiaj.`
-                    : `${stored.length} pomiarów • ${formatDatePL(todayStr())} (odświeżane co 5 min)`;
-        } else {
-            document.getElementById('chartNote').textContent =
-                'Brak danych z dzisiejszego dnia. Wykres wypełni się z kolejnymi pomiarami.';
+        try {
+            const todayData = await loadDayData(todayStr());
+            updateNavUI(todayStr());
+            if (todayData.length > 0) {
+                buildChart(todayData);
+                updateChartSummary(todayData);
+                document.getElementById('historySummary').style.display = 'grid';
+                document.getElementById('chartNote').textContent =
+                    `${todayData.length} pomiarów • ${formatDatePL(todayStr())} (odświeżane co 10 min)`;
+            } else {
+                document.getElementById('chartNote').textContent =
+                    'Brak danych z dzisiejszego dnia. Pojawią się po kolejnej kolekcji.';
+            }
+        } catch (err) {
+            document.getElementById('chartNote').textContent = `Błąd ładowania wykresu: ${err.message}`;
         }
     }
 
-    // 5. Hide overlay, schedule next refresh
+    // 4. Hide overlay, schedule next refresh
     document.getElementById('overlay').style.display = 'none';
     clearTimeout(refreshTimer);
     refreshTimer = setTimeout(refresh, REFRESH_MS);
@@ -154,22 +140,5 @@ async function refresh() {
 /* ───── BOOT ───── */
 (async () => {
     initHistoryControls();
-
-    // Show cached data instantly so the page isn't blank while fetching
-    const stored = loadLocal();
-    if (stored.length > 0) {
-        const latest = stored[stored.length - 1];
-        updateBanner(latest.pm25);
-        updateCard('valPM25', 'progPM25', 'badgePM25', latest.pm25, PM25_LEVELS, 15);
-        updateCard('valPM10', 'progPM10', 'badgePM10', latest.pm10, PM10_LEVELS, 45);
-        updateTempCard(latest.temp);
-        updateHumCard(latest.hum);
-        updateNormsTable(latest.pm25, latest.pm10);
-        buildChart(stored);
-        updateChartSummary(stored);
-        document.getElementById('historySummary').style.display = 'grid';
-        document.getElementById('overlay').style.display = 'none';
-    }
-
-    await refresh();
+    await refresh();   // Supabase responds in <1s, overlay clears immediately
 })();
