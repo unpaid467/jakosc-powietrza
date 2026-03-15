@@ -41,6 +41,7 @@ async function showHistoryDay(dateStr) {
             currentDayReadings = data;
             buildCharts(data);
             if (activeTab === 'timeofday') buildTimeOfDayCharts(data);
+            if (activeTab === 'combined')  buildCombinedChart(data);
             updateChartSummary(data);
             summary.style.display = 'grid';
             chartNote.textContent =
@@ -82,34 +83,35 @@ function initHistoryControls() {
 }
 
 function initTabs() {
-    const btnHourly      = document.getElementById('tabBtnHourly');
-    const btnTimeOfDay   = document.getElementById('tabBtnTimeOfDay');
-    const panelHourly    = document.getElementById('tabPanelHourly');
-    const panelTimeOfDay = document.getElementById('tabPanelTimeOfDay');
+    const tabs = [
+        { btn: 'tabBtnHourly',    panel: 'tabPanelHourly',    key: 'hourly'     },
+        { btn: 'tabBtnTimeOfDay', panel: 'tabPanelTimeOfDay', key: 'timeofday'  },
+        { btn: 'tabBtnCombined',  panel: 'tabPanelCombined',  key: 'combined'   },
+    ];
 
-    btnHourly.addEventListener('click', () => {
-        if (activeTab === 'hourly') return;
-        activeTab = 'hourly';
-        panelHourly.style.display    = '';
-        panelTimeOfDay.style.display = 'none';
-        btnHourly.classList.add('chart-tab-active');
-        btnTimeOfDay.classList.remove('chart-tab-active');
-        // Trigger resize so charts fill their newly-visible panel
-        setTimeout(() => {
-            ['pm25', 'pm10', 'temp', 'hum'].forEach(k => {
-                if (chartInstances[k]) chartInstances[k].resize();
+    tabs.forEach(({ btn, panel, key }) => {
+        document.getElementById(btn).addEventListener('click', () => {
+            if (activeTab === key) return;
+            activeTab = key;
+
+            // Show/hide panels and toggle active class
+            tabs.forEach(t => {
+                document.getElementById(t.panel).style.display = t.key === key ? '' : 'none';
+                document.getElementById(t.btn).classList.toggle('chart-tab-active', t.key === key);
             });
-        }, 0);
-    });
 
-    btnTimeOfDay.addEventListener('click', () => {
-        if (activeTab === 'timeofday') return;
-        activeTab = 'timeofday';
-        panelHourly.style.display    = 'none';
-        panelTimeOfDay.style.display = '';
-        btnHourly.classList.remove('chart-tab-active');
-        btnTimeOfDay.classList.add('chart-tab-active');
-        if (currentDayReadings) buildTimeOfDayCharts(currentDayReadings);
+            if (key === 'hourly') {
+                setTimeout(() => {
+                    ['pm25', 'pm10', 'temp', 'hum'].forEach(k => {
+                        if (chartInstances[k]) chartInstances[k].resize();
+                    });
+                }, 0);
+            } else if (key === 'timeofday' && currentDayReadings) {
+                buildTimeOfDayCharts(currentDayReadings);
+            } else if (key === 'combined' && currentDayReadings) {
+                buildCombinedChart(currentDayReadings);
+            }
+        });
     });
 }
 
@@ -157,6 +159,7 @@ async function refresh() {
                 currentDayReadings = todayData;
                 buildCharts(todayData);
                 if (activeTab === 'timeofday') buildTimeOfDayCharts(todayData);
+                if (activeTab === 'combined')  buildCombinedChart(todayData);
                 updateChartSummary(todayData);
                 document.getElementById('historySummary').style.display = 'grid';
                 document.getElementById('chartNote').textContent =
