@@ -1,7 +1,7 @@
 'use strict';
 
 /* ───── CHART INSTANCES ─────────────────────────────────────────────────── */
-const chartInstances = { pm25: null, pm10: null, temp: null, hum: null, todPm25: null, todPm10: null, todTemp: null, todHum: null };
+const chartInstances = { pm25: null, pm10: null, temp: null, hum: null, todPm25: null, todPm10: null, todTemp: null, todHum: null, combined: null };
 
 function destroyLineCharts() {
     ['pm25', 'pm10', 'temp', 'hum'].forEach(k => {
@@ -16,6 +16,7 @@ function destroyTodCharts() {
 function destroyAllCharts() {
     destroyLineCharts();
     destroyTodCharts();
+    if (chartInstances.combined) { chartInstances.combined.destroy(); chartInstances.combined = null; }
 }
 
 /* ───── GIOŚ COLOR HELPERS ─────────────────────────────────────────────── */
@@ -284,6 +285,98 @@ function buildTimeOfDayCharts(readings) {
     chartInstances.todPm10 = makeBarChart('todPm10Chart', vals('pm10'), pm10Color, 'µg/m³', makeNormPlugin(50, 'Norma PL GUS (50)', 'rgba(80,80,80,.65)'));
     chartInstances.todTemp = makeBarChart('todTempChart', vals('temp'), () => '#10b981', '°C');
     chartInstances.todHum  = makeBarChart('todHumChart',  vals('hum'),  () => '#8b5cf6', '%');
+}
+
+/* ───── COMBINED OVERVIEW CHART ────────────────────────────────────────────── */
+function buildCombinedChart(readings) {
+    if (chartInstances.combined) { chartInstances.combined.destroy(); chartInstances.combined = null; }
+    const canvas = document.getElementById('combinedChart');
+    if (!canvas) { console.error('[chart.js] canvas #combinedChart not found'); return null; }
+
+    const nPts   = readings.length < 48 ? 4 : 2;
+    const labels = readings.map(r => formatTimestamp(r.timestamp));
+
+    const datasets = [
+        {
+            label: 'PM2.5 (µg/m³)',
+            data:  readings.map(r => r.pm25),
+            borderColor: '#2563eb', backgroundColor: 'rgba(37,99,235,.07)',
+            borderWidth: 2.5, pointRadius: nPts, pointHoverRadius: 6,
+            tension: 0.35, fill: false, spanGaps: true,
+        },
+        {
+            label: 'PM10 (µg/m³)',
+            data:  readings.map(r => r.pm10),
+            borderColor: '#f97316', backgroundColor: 'rgba(249,115,22,.07)',
+            borderWidth: 2.5, pointRadius: nPts, pointHoverRadius: 6,
+            tension: 0.35, fill: false, spanGaps: true,
+        },
+        {
+            label: 'Temperatura (°C)',
+            data:  readings.map(r => r.temp),
+            borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,.07)',
+            borderWidth: 2.5, pointRadius: nPts, pointHoverRadius: 6,
+            tension: 0.35, fill: false, spanGaps: true,
+            borderDash: [6, 3],
+        },
+        {
+            label: 'Wilgotność (%)',
+            data:  readings.map(r => r.hum),
+            borderColor: '#8b5cf6', backgroundColor: 'rgba(139,92,246,.07)',
+            borderWidth: 2.5, pointRadius: nPts, pointHoverRadius: 6,
+            tension: 0.35, fill: false, spanGaps: true,
+            borderDash: [2, 3],
+        },
+    ];
+
+    chartInstances.combined = new Chart(canvas.getContext('2d'), {
+        type: 'line',
+        data: { labels, datasets },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+                legend: {
+                    position: 'top',
+                    labels: {
+                        font: { family: 'Segoe UI, system-ui', size: 13 },
+                        padding: 20, usePointStyle: true, pointStyleWidth: 28,
+                        generateLabels: chart => chart.data.datasets.map((ds, i) => ({
+                            text: ds.label,
+                            fillStyle: ds.borderColor,
+                            strokeStyle: ds.borderColor,
+                            lineWidth: 2.5,
+                            pointStyle: 'line',
+                            hidden: !chart.isDatasetVisible(i),
+                            datasetIndex: i,
+                        })),
+                    },
+                },
+                tooltip: {
+                    callbacks: {
+                        label: ctx => {
+                            const v = ctx.parsed.y;
+                            return v !== null ? ` ${ctx.dataset.label}: ${v.toFixed(1)}` : ` ${ctx.dataset.label}: —`;
+                        },
+                    },
+                },
+            },
+            scales: {
+                x: { ticks: { maxTicksLimit: 12, font: { size: 11 } }, grid: { color: 'rgba(0,0,0,.06)' } },
+                y: {
+                    suggestedMin: 0, suggestedMax: 60,
+                    title: { display: true, text: 'µg/m³  |  °C  |  %', font: { size: 11 } },
+                    grid: { color: 'rgba(0,0,0,.06)' },
+                    ticks: { font: { size: 11 } },
+                },
+            },
+        },
+        plugins: [
+            makeNormPlugin(25, 'Norma PM2.5 (25)', 'rgba(37,99,235,.45)'),
+            makeNormPlugin(50, 'Norma PM10 (50)',  'rgba(249,115,22,.45)'),
+        ],
+    });
+    return chartInstances.combined;
 }
 
 /* ───── PUBLIC API ──────────────────────────────────────────────────────── */
