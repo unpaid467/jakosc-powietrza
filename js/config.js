@@ -17,7 +17,7 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 
 /* ───── APP SETTINGS ───── */
 const STORAGE_KEY = 'aq_mielec_rzochowska_v2';
-const REFRESH_MS  = 5 * 60 * 1000;   // live data refresh interval (ms)
+const REFRESH_MS  = 10 * 60 * 1000;  // match collection frequency (10 min)
 
 /* ───── AIR QUALITY LEVELS (GIOŚ) ───── */
 const PM25_LEVELS = [
