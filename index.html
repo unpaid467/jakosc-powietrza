@@ -105,6 +105,7 @@
             font-size: .78rem; color: var(--muted); margin-top: .8rem; text-align: center;
         }
         .chart-wrap { position: relative; height: 280px; }
+        .chart-wrap-tall { position: relative; height: 440px; }
         .charts-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -364,6 +365,7 @@
             <div class="chart-tabs">
                 <button class="chart-tab chart-tab-active" id="tabBtnHourly">📈 Godzinowe</button>
                 <button class="chart-tab" id="tabBtnTimeOfDay">🌅 Pory dnia</button>
+                <button class="chart-tab" id="tabBtnCombined">🔀 Porównanie</button>
             </div>
 
             <!-- Tab: hourly line charts -->
@@ -407,6 +409,13 @@
                         <div class="chart-panel-title">Śr. wilgotność wg pory dnia <span class="chart-unit">%</span></div>
                         <div class="chart-wrap"><canvas id="todHumChart"></canvas></div>
                     </div>
+                </div>
+            </div>
+
+            <!-- Tab: combined overview chart -->
+            <div id="tabPanelCombined" style="display:none">
+                <div class="chart-wrap chart-wrap-tall">
+                    <canvas id="combinedChart"></canvas>
                 </div>
             </div>
 
