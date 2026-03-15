@@ -9,10 +9,9 @@ function destroyAllCharts() {
     });
 }
 
-/* ───── GIOŚ COLOR HELPER ───────────────────────────────────────────────── */
-function pm25Color(v) {
-    return getLevel(v ?? 0, PM25_LEVELS).color;
-}
+/* ───── GIOŚ COLOR HELPERS ─────────────────────────────────────────────── */
+function pm25Color(v) { return getLevel(v ?? 0, PM25_LEVELS).color; }
+function pm10Color(v) { return getLevel(v ?? 0, PM10_LEVELS).color; }
 
 /* ───── NORM REFERENCE LINE PLUGIN ──────────────────────────────────────── */
 function makeNormPlugin(value, label, color) {
@@ -139,18 +138,72 @@ function buildPm25Chart(readings) {
     });
 }
 
+/* ───── PM10 GIOŚ-COLOURED CHART ───────────────────────────────────────── */
+function buildPm10Chart(readings) {
+    const canvas = document.getElementById('pm10Chart');
+    if (!canvas) { console.error('[chart.js] canvas #pm10Chart not found'); return null; }
+
+    const nPts     = readings.length < 48 ? 4 : 2;
+    const labels   = readings.map(r => formatTimestamp(r.timestamp));
+    const data     = readings.map(r => r.pm10);
+    const ptColors = data.map(v => v !== null ? pm10Color(v) : 'rgba(0,0,0,.15)');
+
+    return new Chart(canvas.getContext('2d'), {
+        type: 'line',
+        data: {
+            labels,
+            datasets: [{
+                label: 'PM10 (µg/m³)',
+                data,
+                segment: {
+                    borderColor: ctx => {
+                        const y0 = ctx.p0.parsed.y, y1 = ctx.p1.parsed.y;
+                        return pm10Color((y0 + y1) / 2);
+                    },
+                },
+                backgroundColor: 'rgba(0,0,0,.04)',
+                pointBackgroundColor: ptColors,
+                pointBorderColor:     ptColors,
+                borderWidth: 2.5,
+                pointRadius: nPts, pointHoverRadius: 6,
+                tension: 0.35, fill: true, spanGaps: true,
+            }],
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+                legend: { labels: { font: { family: 'Segoe UI, system-ui', size: 12 } } },
+                tooltip: {
+                    callbacks: {
+                        label: ctx => ` PM10: ${ctx.parsed.y?.toFixed(1) ?? '—'} µg/m³ — ${getLevel(ctx.parsed.y, PM10_LEVELS).label}`,
+                        labelColor: ctx => {
+                            const c = pm10Color(ctx.parsed.y);
+                            return { backgroundColor: c, borderColor: c };
+                        },
+                    },
+                },
+            },
+            scales: {
+                x: { ticks: { maxTicksLimit: 12, font: { size: 11 } }, grid: { color: 'rgba(0,0,0,.06)' } },
+                y: {
+                    beginAtZero: true,
+                    title: { display: true, text: 'µg/m³', font: { size: 11 } },
+                    grid: { color: 'rgba(0,0,0,.06)' },
+                    afterDataLimits: ax => { ax.max = Math.max(ax.max, 60); },
+                },
+            },
+        },
+        plugins: [makeNormPlugin(50, 'Norma PL GUS (50)', 'rgba(80,80,80,.65)')],
+    });
+}
+
 /* ───── PUBLIC API ──────────────────────────────────────────────────────── */
 function buildCharts(readings) {
     destroyAllCharts();
 
     chartInstances.pm25 = buildPm25Chart(readings);
-
-    chartInstances.pm10 = makeChart(
-        'pm10Chart', readings, 'pm10', 'PM10 (µg/m³)',
-        '#f97316', 'rgba(249,115,22,.08)',
-        { title: 'µg/m³', beginAtZero: true, afterDataLimits: ax => { ax.max = Math.max(ax.max, 60); } },
-        [makeNormPlugin(50, 'Norma PL GUS (50)', 'rgba(249,115,22,.75)')],
-    );
+    chartInstances.pm10 = buildPm10Chart(readings);
 
     chartInstances.temp = makeChart(
         'tempChart', readings, 'temp', 'Temperatura (°C)',
