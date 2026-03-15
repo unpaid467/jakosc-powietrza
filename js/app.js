@@ -1,19 +1,21 @@
 'use strict';
 
-/* ───── COUNTDOWN TIMER ───── */
-let countdownSec      = REFRESH_MS / 1000;
-let countdownInterval = null;
+/* ───── DATA AGE INDICATOR ───── */
 let refreshTimer      = null;
+let dataAgeInterval   = null;
+let latestTimestamp   = null;   // set after each successful fetch
 
-function startCountdown() {
-    clearInterval(countdownInterval);
-    countdownSec = REFRESH_MS / 1000;
-    countdownInterval = setInterval(() => {
-        countdownSec = Math.max(0, countdownSec - 1);
-        const m = String(Math.floor(countdownSec / 60)).padStart(1, '0');
-        const s = String(countdownSec % 60).padStart(2, '0');
-        document.getElementById('countdown').textContent = `${m}:${s}`;
-    }, 1000);
+function startDataAge() {
+    clearInterval(dataAgeInterval);
+    dataAgeInterval = setInterval(() => {
+        if (!latestTimestamp) return;
+        const diffMin = Math.round((Date.now() - new Date(latestTimestamp.replace(' ', 'T'))) / 60000);
+        const el = document.getElementById('dataAge');
+        if (!el) return;
+        if (diffMin < 1)        el.textContent = 'Dane sprzed chwili';
+        else if (diffMin === 1) el.textContent = 'Dane sprzed 1 min';
+        else                    el.textContent = `Dane sprzed ${diffMin} min`;
+    }, 30000);   // update every 30 s is plenty
 }
 
 /* ───── HISTORY NAVIGATION ───── */
@@ -131,10 +133,16 @@ async function refresh() {
     }
 
     // 4. Hide overlay, schedule next refresh
+    if (latest) {
+        latestTimestamp = latest.timestamp;
+        startDataAge();   // update age label immediately
+        const diffMin = Math.round((Date.now() - new Date(latest.timestamp.replace(' ', 'T'))) / 60000);
+        const el = document.getElementById('dataAge');
+        if (el) el.textContent = diffMin < 1 ? 'Dane sprzed chwili' : `Dane sprzed ${diffMin} min`;
+    }
     document.getElementById('overlay').style.display = 'none';
     clearTimeout(refreshTimer);
     refreshTimer = setTimeout(refresh, REFRESH_MS);
-    startCountdown();
 }
 
 /* ───── BOOT ───── */
