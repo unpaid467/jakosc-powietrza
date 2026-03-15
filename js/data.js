@@ -115,8 +115,19 @@ async function fetchArchiveCSV(dateStr) {
 
 /* ───── SUPABASE ───── */
 
+async function fetchLatestFromSupabase() {
+    const url = `${SUPABASE_URL}/rest/v1/readings`
+        + `?order=timestamp.desc&limit=1`
+        + `&select=timestamp,pm25,pm10,temp,hum,pressure`;
+    const r = await fetch(url, {
+        headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` },
+    });
+    if (!r.ok) throw new Error(`Supabase HTTP ${r.status}`);
+    const data = await r.json();
+    return data[0] ?? null;
+}
+
 async function fetchDayFromSupabase(dateStr) {
-    // Convert local date boundaries to UTC ISO strings for the timestamptz column
     const start = new Date(`${dateStr}T00:00:00`).toISOString();
     const end   = new Date(`${dateStr}T23:59:59`).toISOString();
     const url   = `${SUPABASE_URL}/rest/v1/readings`
@@ -125,10 +136,7 @@ async function fetchDayFromSupabase(dateStr) {
         + `&order=timestamp.asc`
         + `&select=timestamp,pm25,pm10,temp,hum,pressure`;
     const r = await fetch(url, {
-        headers: {
-            apikey:        SUPABASE_ANON_KEY,
-            Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
-        },
+        headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` },
     });
     if (!r.ok) throw new Error(`Supabase HTTP ${r.status}`);
     return r.json();
@@ -156,9 +164,9 @@ const historyCache = new Map();
 let currentViewDate = '';   // initialised by initHistoryControls()
 
 async function loadDayData(dateStr) {
-    if (dateStr === todayStr()) return loadLocal();
-    if (historyCache.has(dateStr)) return historyCache.get(dateStr);
+    // Today is never cached – new rows arrive every 10 min
+    if (dateStr !== todayStr() && historyCache.has(dateStr)) return historyCache.get(dateStr);
     const data = await fetchDayFromSource(dateStr);
-    historyCache.set(dateStr, data);
+    if (dateStr !== todayStr()) historyCache.set(dateStr, data);
     return data;
 }
