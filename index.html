@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="pl">
 <head>
     <meta charset="UTF-8">
@@ -105,6 +105,20 @@
             font-size: .78rem; color: var(--muted); margin-top: .8rem; text-align: center;
         }
         .chart-wrap { position: relative; height: 280px; }
+        .charts-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.2rem;
+        }
+        .chart-panel-title {
+            font-size: .8rem; font-weight: 600; color: var(--muted);
+            text-transform: uppercase; letter-spacing: .06em; margin-bottom: .45rem;
+        }
+        .chart-unit { font-weight: 400; text-transform: none; letter-spacing: 0; }
+        @media (max-width: 640px) {
+            .charts-grid { grid-template-columns: 1fr; }
+            .charts-grid .chart-wrap { height: 200px; }
+        }
 
         /* ───────── HISTORY NAVIGATION ───────── */
         .history-nav {
@@ -327,8 +341,23 @@
                 <span class="mini-spinner"></span> Ładowanie danych archiwalnych…
             </div>
 
-            <div class="chart-wrap">
-                <canvas id="mainChart"></canvas>
+            <div class="charts-grid">
+                <div class="chart-panel">
+                    <div class="chart-panel-title">PM2.5 <span class="chart-unit">µg/m³</span></div>
+                    <div class="chart-wrap"><canvas id="pm25Chart"></canvas></div>
+                </div>
+                <div class="chart-panel">
+                    <div class="chart-panel-title">PM10 <span class="chart-unit">µg/m³</span></div>
+                    <div class="chart-wrap"><canvas id="pm10Chart"></canvas></div>
+                </div>
+                <div class="chart-panel">
+                    <div class="chart-panel-title">Temperatura <span class="chart-unit">°C</span></div>
+                    <div class="chart-wrap"><canvas id="tempChart"></canvas></div>
+                </div>
+                <div class="chart-panel">
+                    <div class="chart-panel-title">Wilgotność <span class="chart-unit">%</span></div>
+                    <div class="chart-wrap"><canvas id="humChart"></canvas></div>
+                </div>
             </div>
 
             <!-- Daily summary stats (visible when data is loaded) -->
@@ -352,6 +381,14 @@
                 <div class="summary-item">
                     <span class="summary-label">Pomiarów</span>
                     <span class="summary-val" id="sumCount">—</span>
+                </div>
+                <div class="summary-item">
+                    <span class="summary-label">Śr. Temp.</span>
+                    <span class="summary-val" id="sumAvgTemp">—</span>
+                </div>
+                <div class="summary-item">
+                    <span class="summary-label">Śr. Wilg.</span>
+                    <span class="summary-val" id="sumAvgHum">—</span>
                 </div>
             </div>
 

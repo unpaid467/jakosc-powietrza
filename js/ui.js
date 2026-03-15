@@ -78,9 +78,15 @@ function updateChartSummary(data) {
     const avg = arr => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null;
     const max = arr => arr.length ? Math.max(...arr) : null;
     const fmt = v => v !== null ? v.toFixed(1) + ' µg/m³' : '—';
+    const tempVals = data.map(r => r.temp).filter(v => v !== null);
+    const humVals  = data.map(r => r.hum).filter(v => v !== null);
     document.getElementById('sumAvgPM25').textContent = fmt(avg(pm25Vals));
     document.getElementById('sumMaxPM25').textContent = fmt(max(pm25Vals));
     document.getElementById('sumAvgPM10').textContent = fmt(avg(pm10Vals));
     document.getElementById('sumMaxPM10').textContent = fmt(max(pm10Vals));
     document.getElementById('sumCount').textContent   = data.length;
+    document.getElementById('sumAvgTemp').textContent =
+        tempVals.length ? avg(tempVals).toFixed(1) + ' °C' : '—';
+    document.getElementById('sumAvgHum').textContent =
+        humVals.length  ? avg(humVals).toFixed(0)  + ' %'  : '—';
 }

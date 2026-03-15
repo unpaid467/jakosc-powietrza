@@ -36,14 +36,14 @@ async function showHistoryDay(dateStr) {
     try {
         const data = await loadDayData(dateStr);
         if (data.length > 0) {
-            buildChart(data);
+            buildCharts(data);
             updateChartSummary(data);
             summary.style.display = 'grid';
             chartNote.textContent =
                 `${data.length} pomiarów • ${formatDatePL(dateStr)}` +
                 (isToday ? ' (dane bieżące, odświeżane co 1 godz.)' : ' (dane z bazy danych)');
         } else {
-            if (chartInstance) { chartInstance.destroy(); chartInstance = null; }
+            destroyAllCharts();
             chartNote.textContent = isToday
                 ? 'Brak danych z dzisiejszego dnia. Wykres wypełni się z kolejnymi pomiarami.'
                 : 'Brak danych w bazie dla wybranego dnia.';
@@ -118,7 +118,7 @@ async function refresh() {
             const todayData = await loadDayData(todayStr());
             updateNavUI(todayStr());
             if (todayData.length > 0) {
-                buildChart(todayData);
+                buildCharts(todayData);
                 updateChartSummary(todayData);
                 document.getElementById('historySummary').style.display = 'grid';
                 document.getElementById('chartNote').textContent =
