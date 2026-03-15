@@ -1,6 +1,6 @@
 """
 Air quality collector for sensor.community → Supabase.
-Runs every 10 minutes via GitHub Actions.
+Runs every hour via GitHub Actions.
 
 Reads from two sensors (SDS011 + BME280) and inserts one row into
 the Supabase `readings` table using the collection time as the timestamp,
@@ -93,6 +93,8 @@ def collect() -> None:
         headers=HEADERS,
         timeout=15,
     )
+    if not r.ok:
+        print(f"Supabase error {r.status_code}: {r.text}", file=sys.stderr)
     r.raise_for_status()
     print(f"OK  {row['timestamp']}  PM2.5={row['pm25']}  PM10={row['pm10']}  temp={row['temp']}")
 
@@ -100,10 +102,6 @@ def collect() -> None:
 if __name__ == "__main__":
     try:
         collect()
-    except requests.exceptions.ConnectionError as exc:
-        # Transient network failure — log and exit 0 so GitHub doesn't flag as broken
-        print(f"WARN: sensor.community unreachable (transient), skipping this run.\n  {exc}", file=sys.stderr)
-        sys.exit(0)
     except Exception as exc:
-        print(f"ERROR: {exc}", file=sys.stderr)
+        print(f"ERROR [{type(exc).__name__}]: {exc}", file=sys.stderr)
         sys.exit(1)
