@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pl">
 <head>
     <meta charset="UTF-8">
@@ -118,6 +118,25 @@
         @media (max-width: 640px) {
             .charts-grid { grid-template-columns: 1fr; }
             .charts-grid .chart-wrap { height: 200px; }
+        }
+
+        /* ───────── CHART TABS ───────── */
+        .chart-tabs {
+            display: flex; gap: .4rem;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: .7rem; margin-bottom: 1rem;
+        }
+        .chart-tab {
+            background: none; border: 1px solid var(--border);
+            border-radius: 8px; padding: .32rem .9rem;
+            font-size: .84rem; font-family: inherit;
+            color: var(--muted); cursor: pointer;
+            transition: background .15s, color .15s, border-color .15s;
+        }
+        .chart-tab:hover { background: var(--bg); color: var(--text); }
+        .chart-tab-active {
+            background: var(--blue2); border-color: var(--blue2);
+            color: #fff; font-weight: 600;
         }
 
         /* ───────── HISTORY NAVIGATION ───────── */
@@ -341,22 +360,53 @@
                 <span class="mini-spinner"></span> Ładowanie danych archiwalnych…
             </div>
 
-            <div class="charts-grid">
-                <div class="chart-panel">
-                    <div class="chart-panel-title">PM2.5 <span class="chart-unit">µg/m³</span></div>
-                    <div class="chart-wrap"><canvas id="pm25Chart"></canvas></div>
+            <!-- Tab switcher -->
+            <div class="chart-tabs">
+                <button class="chart-tab chart-tab-active" id="tabBtnHourly">📈 Godzinowe</button>
+                <button class="chart-tab" id="tabBtnTimeOfDay">🌅 Pory dnia</button>
+            </div>
+
+            <!-- Tab: hourly line charts -->
+            <div id="tabPanelHourly">
+                <div class="charts-grid">
+                    <div class="chart-panel">
+                        <div class="chart-panel-title">PM2.5 <span class="chart-unit">µg/m³</span></div>
+                        <div class="chart-wrap"><canvas id="pm25Chart"></canvas></div>
+                    </div>
+                    <div class="chart-panel">
+                        <div class="chart-panel-title">PM10 <span class="chart-unit">µg/m³</span></div>
+                        <div class="chart-wrap"><canvas id="pm10Chart"></canvas></div>
+                    </div>
+                    <div class="chart-panel">
+                        <div class="chart-panel-title">Temperatura <span class="chart-unit">°C</span></div>
+                        <div class="chart-wrap"><canvas id="tempChart"></canvas></div>
+                    </div>
+                    <div class="chart-panel">
+                        <div class="chart-panel-title">Wilgotność <span class="chart-unit">%</span></div>
+                        <div class="chart-wrap"><canvas id="humChart"></canvas></div>
+                    </div>
                 </div>
-                <div class="chart-panel">
-                    <div class="chart-panel-title">PM10 <span class="chart-unit">µg/m³</span></div>
-                    <div class="chart-wrap"><canvas id="pm10Chart"></canvas></div>
-                </div>
-                <div class="chart-panel">
-                    <div class="chart-panel-title">Temperatura <span class="chart-unit">°C</span></div>
-                    <div class="chart-wrap"><canvas id="tempChart"></canvas></div>
-                </div>
-                <div class="chart-panel">
-                    <div class="chart-panel-title">Wilgotność <span class="chart-unit">%</span></div>
-                    <div class="chart-wrap"><canvas id="humChart"></canvas></div>
+            </div>
+
+            <!-- Tab: time-of-day average bar charts -->
+            <div id="tabPanelTimeOfDay" style="display:none">
+                <div class="charts-grid">
+                    <div class="chart-panel">
+                        <div class="chart-panel-title">Śr. PM2.5 wg pory dnia <span class="chart-unit">µg/m³</span></div>
+                        <div class="chart-wrap"><canvas id="todPm25Chart"></canvas></div>
+                    </div>
+                    <div class="chart-panel">
+                        <div class="chart-panel-title">Śr. PM10 wg pory dnia <span class="chart-unit">µg/m³</span></div>
+                        <div class="chart-wrap"><canvas id="todPm10Chart"></canvas></div>
+                    </div>
+                    <div class="chart-panel">
+                        <div class="chart-panel-title">Śr. temperatura wg pory dnia <span class="chart-unit">°C</span></div>
+                        <div class="chart-wrap"><canvas id="todTempChart"></canvas></div>
+                    </div>
+                    <div class="chart-panel">
+                        <div class="chart-panel-title">Śr. wilgotność wg pory dnia <span class="chart-unit">%</span></div>
+                        <div class="chart-wrap"><canvas id="todHumChart"></canvas></div>
+                    </div>
                 </div>
             </div>
 
