@@ -13,6 +13,7 @@ Required environment variables (set as GitHub Actions secrets):
 
 import os
 import sys
+import time
 from datetime import datetime, timezone
 
 import requests
@@ -21,6 +22,9 @@ import requests
 PM_SENSOR_ID  = 63261   # SDS011  – P1=PM10, P2=PM2.5
 ENV_SENSOR_ID = 63262   # BME280  – temperature, humidity, pressure
 API_BASE      = "https://data.sensor.community/airrohr/v1/sensor"
+
+RETRY_ATTEMPTS = 3
+RETRY_DELAY_S  = 15   # seconds between retries
 
 # ── Supabase connection (injected via env vars) ───────────────────────────
 SUPABASE_URL         = os.environ["SUPABASE_URL"].rstrip("/")
@@ -35,13 +39,22 @@ HEADERS = {
 
 
 def fetch_sensor(sensor_id: int) -> dict:
-    """Fetch the latest reading from a sensor.community sensor."""
-    r = requests.get(f"{API_BASE}/{sensor_id}/", timeout=15)
-    r.raise_for_status()
-    data = r.json()
-    if not data:
-        raise ValueError(f"No data returned from sensor {sensor_id}")
-    return data[0]
+    """Fetch the latest reading from a sensor.community sensor, with retries."""
+    last_err = None
+    for attempt in range(1, RETRY_ATTEMPTS + 1):
+        try:
+            r = requests.get(f"{API_BASE}/{sensor_id}/", timeout=15)
+            r.raise_for_status()
+            data = r.json()
+            if not data:
+                raise ValueError(f"No data returned from sensor {sensor_id}")
+            return data[0]
+        except Exception as exc:
+            last_err = exc
+            if attempt < RETRY_ATTEMPTS:
+                print(f"  attempt {attempt} failed ({exc}), retrying in {RETRY_DELAY_S}s…")
+                time.sleep(RETRY_DELAY_S)
+    raise last_err
 
 
 def parse_values(entry: dict) -> dict[str, float | None]:
@@ -87,6 +100,10 @@ def collect() -> None:
 if __name__ == "__main__":
     try:
         collect()
+    except requests.exceptions.ConnectionError as exc:
+        # Transient network failure — log and exit 0 so GitHub doesn't flag as broken
+        print(f"WARN: sensor.community unreachable (transient), skipping this run.\n  {exc}", file=sys.stderr)
+        sys.exit(0)
     except Exception as exc:
         print(f"ERROR: {exc}", file=sys.stderr)
         sys.exit(1)
