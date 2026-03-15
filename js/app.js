@@ -41,7 +41,7 @@ async function showHistoryDay(dateStr) {
             summary.style.display = 'grid';
             chartNote.textContent =
                 `${data.length} pomiarów • ${formatDatePL(dateStr)}` +
-                (isToday ? ' (dane bieżące, odświeżane co 5 min)' : ' (dane z bazy danych)');
+                (isToday ? ' (dane bieżące, odświeżane co 1 godz.)' : ' (dane z bazy danych)');
         } else {
             if (chartInstance) { chartInstance.destroy(); chartInstance = null; }
             chartNote.textContent = isToday
@@ -77,7 +77,7 @@ function initHistoryControls() {
     picker.addEventListener('change', () => { if (picker.value) showHistoryDay(picker.value); });
 }
 
-/* ───── MAIN REFRESH (runs every 10 min, reads everything from Supabase) ───── */
+/* ───── MAIN REFRESH (runs every hour, reads everything from Supabase) ───── */
 
 async function refresh() {
     const overlayErr    = document.getElementById('overlayErr');
@@ -109,7 +109,7 @@ async function refresh() {
     }
 
     document.getElementById('dataSourceInfo').textContent = supabaseReady
-        ? 'Źródło danych: Supabase (zbierane co 10 min)'
+        ? 'Źródło danych: Supabase (zbierane co 1 godz.)'
         : `Czujniki: SDS011 #${PM_SENSOR_ID} + BME280 #${ENV_SENSOR_ID}`;
 
     // 3. Refresh chart if user is viewing today
@@ -122,7 +122,7 @@ async function refresh() {
                 updateChartSummary(todayData);
                 document.getElementById('historySummary').style.display = 'grid';
                 document.getElementById('chartNote').textContent =
-                    `${todayData.length} pomiarów • ${formatDatePL(todayStr())} (odświeżane co 10 min)`;
+                    `${todayData.length} pomiarów • ${formatDatePL(todayStr())} (odświeżane co 1 godz.)`;
             } else {
                 document.getElementById('chartNote').textContent =
                     'Brak danych z dzisiejszego dnia. Pojawią się po kolejnej kolekcji.';
