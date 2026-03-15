@@ -1,9 +1,11 @@
 'use strict';
 
 /* ───── DATA AGE INDICATOR ───── */
-let refreshTimer      = null;
-let dataAgeInterval   = null;
-let latestTimestamp   = null;   // set after each successful fetch
+let refreshTimer        = null;
+let dataAgeInterval     = null;
+let latestTimestamp     = null;    // set after each successful fetch
+let activeTab           = 'hourly';
+let currentDayReadings  = null;
 
 function startDataAge() {
     clearInterval(dataAgeInterval);
@@ -36,7 +38,9 @@ async function showHistoryDay(dateStr) {
     try {
         const data = await loadDayData(dateStr);
         if (data.length > 0) {
+            currentDayReadings = data;
             buildCharts(data);
+            if (activeTab === 'timeofday') buildTimeOfDayCharts(data);
             updateChartSummary(data);
             summary.style.display = 'grid';
             chartNote.textContent =
@@ -75,6 +79,38 @@ function initHistoryControls() {
     document.getElementById('btnNextDay').addEventListener('click', () => offsetDay(+1));
     document.getElementById('btnToday').addEventListener('click',   () => showHistoryDay(todayStr()));
     picker.addEventListener('change', () => { if (picker.value) showHistoryDay(picker.value); });
+}
+
+function initTabs() {
+    const btnHourly      = document.getElementById('tabBtnHourly');
+    const btnTimeOfDay   = document.getElementById('tabBtnTimeOfDay');
+    const panelHourly    = document.getElementById('tabPanelHourly');
+    const panelTimeOfDay = document.getElementById('tabPanelTimeOfDay');
+
+    btnHourly.addEventListener('click', () => {
+        if (activeTab === 'hourly') return;
+        activeTab = 'hourly';
+        panelHourly.style.display    = '';
+        panelTimeOfDay.style.display = 'none';
+        btnHourly.classList.add('chart-tab-active');
+        btnTimeOfDay.classList.remove('chart-tab-active');
+        // Trigger resize so charts fill their newly-visible panel
+        setTimeout(() => {
+            ['pm25', 'pm10', 'temp', 'hum'].forEach(k => {
+                if (chartInstances[k]) chartInstances[k].resize();
+            });
+        }, 0);
+    });
+
+    btnTimeOfDay.addEventListener('click', () => {
+        if (activeTab === 'timeofday') return;
+        activeTab = 'timeofday';
+        panelHourly.style.display    = 'none';
+        panelTimeOfDay.style.display = '';
+        btnHourly.classList.remove('chart-tab-active');
+        btnTimeOfDay.classList.add('chart-tab-active');
+        if (currentDayReadings) buildTimeOfDayCharts(currentDayReadings);
+    });
 }
 
 /* ───── MAIN REFRESH (runs every hour, reads everything from Supabase) ───── */
@@ -118,7 +154,9 @@ async function refresh() {
             const todayData = await loadDayData(todayStr());
             updateNavUI(todayStr());
             if (todayData.length > 0) {
+                currentDayReadings = todayData;
                 buildCharts(todayData);
+                if (activeTab === 'timeofday') buildTimeOfDayCharts(todayData);
                 updateChartSummary(todayData);
                 document.getElementById('historySummary').style.display = 'grid';
                 document.getElementById('chartNote').textContent =
@@ -147,6 +185,7 @@ async function refresh() {
 
 /* ───── BOOT ───── */
 (async () => {
+    initTabs();
     initHistoryControls();
     await refresh();   // Supabase responds in <1s, overlay clears immediately
 })();
