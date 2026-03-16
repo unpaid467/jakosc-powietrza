@@ -102,7 +102,7 @@ function initTabs() {
 
             if (key === 'hourly') {
                 setTimeout(() => {
-                    ['pm25', 'pm10', 'temp', 'hum'].forEach(k => {
+                    ['pm25', 'pm10', 'temp', 'hum', 'pressure'].forEach(k => {
                         if (chartInstances[k]) chartInstances[k].resize();
                     });
                 }, 0);
@@ -140,6 +140,7 @@ async function refresh() {
         updateCard('valPM10', 'progPM10', 'badgePM10', latest.pm10, PM10_LEVELS, 45);
         updateTempCard(latest.temp);
         updateHumCard(latest.hum);
+        updatePressureCard(latest.pressure);
         updateNormsTable(latest.pm25, latest.pm10);
         updateLastUpdate(latest.timestamp);
     } else if (!latest) {
