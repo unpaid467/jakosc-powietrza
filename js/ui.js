@@ -44,6 +44,19 @@ function updateHumCard(hum) {
     else                desc.textContent = '💦 Podwyższona wilgotność';
 }
 
+function updatePressureCard(pressureRaw) {
+    // pressureRaw is stored in Pa (sensor.community), convert to hPa for display
+    const hpa = pressureRaw !== null ? pressureRaw / 100 : null;
+    setVal('valPressure', hpa, 1);
+    const desc = document.getElementById('pressureDesc');
+    if (hpa === null)    { desc.textContent = 'Brak danych o ciśnieniu'; return; }
+    if      (hpa < 980)  desc.textContent = '⬇️ Niskie ciśnienie';
+    else if (hpa < 1000) desc.textContent = '🌧️ Lekko obniżone';
+    else if (hpa <= 1020) desc.textContent = '✅ Ciśnienie normalne';
+    else if (hpa <= 1040) desc.textContent = '⬆️ Lekko podwyższone';
+    else                 desc.textContent = '☀️ Wysokie ciśnienie';
+}
+
 function updateNormsTable(pm25, pm10) {
     const fmt = v => v !== null ? `${v.toFixed(1)} µg/m³` : '—';
     document.getElementById('normPM25val').textContent = fmt(pm25);
@@ -89,4 +102,7 @@ function updateChartSummary(data) {
         tempVals.length ? avg(tempVals).toFixed(1) + ' °C' : '—';
     document.getElementById('sumAvgHum').textContent =
         humVals.length  ? avg(humVals).toFixed(0)  + ' %'  : '—';
+    const pressureVals = data.map(r => r.pressure).filter(v => v !== null).map(v => v / 100);
+    document.getElementById('sumAvgPressure').textContent =
+        pressureVals.length ? avg(pressureVals).toFixed(1) + ' hPa' : '—';
 }
