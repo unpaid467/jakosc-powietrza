@@ -339,6 +339,16 @@
                 <div class="card-norm" id="humDesc">Brak danych o wilgotności</div>
             </div>
 
+            <div class="card" id="cardPressure">
+                <div class="card-header">
+                    <span class="card-title">Ciśnienie atmosferyczne</span>
+                    <span class="card-icon">🌬️</span>
+                </div>
+                <div class="card-value" id="valPressure">—</div>
+                <div class="card-unit">hPa</div>
+                <div class="card-norm" id="pressureDesc">Brak danych o ciśnieniu</div>
+            </div>
+
         </div>
     </section>
 
@@ -387,6 +397,10 @@
                         <div class="chart-panel-title">Wilgotność <span class="chart-unit">%</span></div>
                         <div class="chart-wrap"><canvas id="humChart"></canvas></div>
                     </div>
+                    <div class="chart-panel">
+                        <div class="chart-panel-title">Ciśnienie atm. <span class="chart-unit">hPa</span></div>
+                        <div class="chart-wrap"><canvas id="pressureChart"></canvas></div>
+                    </div>
                 </div>
             </div>
 
@@ -408,6 +422,10 @@
                     <div class="chart-panel">
                         <div class="chart-panel-title">Śr. wilgotność wg pory dnia <span class="chart-unit">%</span></div>
                         <div class="chart-wrap"><canvas id="todHumChart"></canvas></div>
+                    </div>
+                    <div class="chart-panel">
+                        <div class="chart-panel-title">Śr. ciśnienie wg pory dnia <span class="chart-unit">hPa</span></div>
+                        <div class="chart-wrap"><canvas id="todPressureChart"></canvas></div>
                     </div>
                 </div>
             </div>
@@ -448,6 +466,10 @@
                 <div class="summary-item">
                     <span class="summary-label">Śr. Wilg.</span>
                     <span class="summary-val" id="sumAvgHum">—</span>
+                </div>
+                <div class="summary-item">
+                    <span class="summary-label">Śr. Ciśn.</span>
+                    <span class="summary-val" id="sumAvgPressure">—</span>
                 </div>
             </div>
 
