@@ -1,15 +1,15 @@
 'use strict';
 
 /* ───── CHART INSTANCES ─────────────────────────────────────────────────── */
-const chartInstances = { pm25: null, pm10: null, temp: null, hum: null, todPm25: null, todPm10: null, todTemp: null, todHum: null, combined: null };
+const chartInstances = { pm25: null, pm10: null, temp: null, hum: null, pressure: null, todPm25: null, todPm10: null, todTemp: null, todHum: null, todPressure: null, combined: null };
 
 function destroyLineCharts() {
-    ['pm25', 'pm10', 'temp', 'hum'].forEach(k => {
+    ['pm25', 'pm10', 'temp', 'hum', 'pressure'].forEach(k => {
         if (chartInstances[k]) { chartInstances[k].destroy(); chartInstances[k] = null; }
     });
 }
 function destroyTodCharts() {
-    ['todPm25', 'todPm10', 'todTemp', 'todHum'].forEach(k => {
+    ['todPm25', 'todPm10', 'todTemp', 'todHum', 'todPressure'].forEach(k => {
         if (chartInstances[k]) { chartInstances[k].destroy(); chartInstances[k] = null; }
     });
 }
@@ -211,23 +211,24 @@ function buildPm10Chart(readings) {
 /* ───── TIME-OF-DAY AVERAGES ────────────────────────────────────────────────── */
 function computeTimeOfDay(readings) {
     const slots = [
-        { pm25: [], pm10: [], temp: [], hum: [] },  // Noc 0–6
-        { pm25: [], pm10: [], temp: [], hum: [] },  // Rano 6–12
-        { pm25: [], pm10: [], temp: [], hum: [] },  // Południe 12–18
-        { pm25: [], pm10: [], temp: [], hum: [] },  // Wieczór 18–24
+        { pm25: [], pm10: [], temp: [], hum: [], pressure: [] },  // Noc 0–6
+        { pm25: [], pm10: [], temp: [], hum: [], pressure: [] },  // Rano 6–12
+        { pm25: [], pm10: [], temp: [], hum: [], pressure: [] },  // Południe 12–18
+        { pm25: [], pm10: [], temp: [], hum: [], pressure: [] },  // Wieczór 18–24
     ];
     for (const r of readings) {
         const ts = r.timestamp.replace ? r.timestamp.replace(' ', 'T') : r.timestamp;
         const h  = new Date(ts).getHours();
         const si = h < 6 ? 0 : h < 12 ? 1 : h < 18 ? 2 : 3;
         const s  = slots[si];
-        if (r.pm25 !== null) s.pm25.push(r.pm25);
-        if (r.pm10 !== null) s.pm10.push(r.pm10);
-        if (r.temp !== null) s.temp.push(r.temp);
-        if (r.hum  !== null) s.hum.push(r.hum);
+        if (r.pm25     !== null) s.pm25.push(r.pm25);
+        if (r.pm10     !== null) s.pm10.push(r.pm10);
+        if (r.temp     !== null) s.temp.push(r.temp);
+        if (r.hum      !== null) s.hum.push(r.hum);
+        if (r.pressure !== null) s.pressure.push(r.pressure / 100);  // Pa → hPa
     }
     const avg = arr => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null;
-    return slots.map(s => ({ pm25: avg(s.pm25), pm10: avg(s.pm10), temp: avg(s.temp), hum: avg(s.hum) }));
+    return slots.map(s => ({ pm25: avg(s.pm25), pm10: avg(s.pm10), temp: avg(s.temp), hum: avg(s.hum), pressure: avg(s.pressure) }));
 }
 
 function makeBarChart(canvasId, values, colorFn, yTitle, normPlugin) {
@@ -281,10 +282,11 @@ function buildTimeOfDayCharts(readings) {
     const tod  = computeTimeOfDay(readings);
     const vals = key => tod.map(s => s[key]);
 
-    chartInstances.todPm25 = makeBarChart('todPm25Chart', vals('pm25'), pm25Color, 'µg/m³', makeNormPlugin(25, 'Norma PL GUS (25)', 'rgba(80,80,80,.65)'));
-    chartInstances.todPm10 = makeBarChart('todPm10Chart', vals('pm10'), pm10Color, 'µg/m³', makeNormPlugin(50, 'Norma PL GUS (50)', 'rgba(80,80,80,.65)'));
-    chartInstances.todTemp = makeBarChart('todTempChart', vals('temp'), () => '#10b981', '°C');
-    chartInstances.todHum  = makeBarChart('todHumChart',  vals('hum'),  () => '#8b5cf6', '%');
+    chartInstances.todPm25     = makeBarChart('todPm25Chart',     vals('pm25'),     pm25Color,        'µg/m³', makeNormPlugin(25, 'Norma PL GUS (25)', 'rgba(80,80,80,.65)'));
+    chartInstances.todPm10     = makeBarChart('todPm10Chart',     vals('pm10'),     pm10Color,        'µg/m³', makeNormPlugin(50, 'Norma PL GUS (50)', 'rgba(80,80,80,.65)'));
+    chartInstances.todTemp     = makeBarChart('todTempChart',     vals('temp'),     () => '#10b981',  '°C');
+    chartInstances.todHum      = makeBarChart('todHumChart',      vals('hum'),      () => '#8b5cf6',  '%');
+    chartInstances.todPressure = makeBarChart('todPressureChart', vals('pressure'), () => '#0891b2',  'hPa');
 }
 
 /* ───── COMBINED OVERVIEW CHART ────────────────────────────────────────────── */
@@ -396,6 +398,17 @@ function buildCharts(readings) {
         'humChart', readings, 'hum', 'Wilgotność (%)',
         '#8b5cf6', 'rgba(139,92,246,.08)',
         { title: '%', beginAtZero: true, afterDataLimits: ax => { ax.max = Math.min(Math.max(ax.max, 80), 100); } },
+    );
+
+    // Pressure: convert Pa → hPa for display
+    const pressureReadings = readings.map(r => ({
+        ...r,
+        pressure: r.pressure !== null ? r.pressure / 100 : null,
+    }));
+    chartInstances.pressure = makeChart(
+        'pressureChart', pressureReadings, 'pressure', 'Ciśnienie (hPa)',
+        '#0891b2', 'rgba(8,145,178,.08)',
+        { title: 'hPa', afterDataLimits: ax => { ax.min = ax.min - 2; ax.max = ax.max + 2; } },
     );
 }
 
